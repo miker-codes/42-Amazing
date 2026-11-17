@@ -1,0 +1,13 @@
+[flake8]
+max-line-length = 99
+exclude =
+    .venv,
+    .git,
+    __pycache__,
+    .mypy_cache,
+    .pytest_cache,
+    mazegen/build,
+    mazegen/dist,
+    mazegen/*.egg-info,
+    build,
+    dist

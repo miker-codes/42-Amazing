@@ -1,0 +1,12 @@
+# Default configuration for a_maze_ing.
+# One KEY=VALUE pair per line. Lines starting with '#' are comments.
+
+WIDTH=20
+HEIGHT=15
+ENTRY=0,0
+EXIT=19,14
+OUTPUT_FILE=maze.txt
+PERFECT=False
+
+# Optional extra keys can be added later (not required by the subject),
+# e.g. SEED=42 for a reproducible generation run.

@@ -1,0 +1,6 @@
+# Dev/tooling dependencies, installed into .venv by `make install`.
+# The generator itself (mazegen) only needs the standard library.
+flake8
+mypy
+build
+pytest

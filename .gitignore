@@ -1,0 +1,30 @@
+# --- Project subject material (not meant to be redistributed) -------------
+en.subject.pdf
+
+# --- Python artifacts --------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# --- Virtual environment (recreated by `make install`) -----------------
+.venv/
+
+# --- Build intermediates for the mazegen package ------------------------
+# The final .whl / .tar.gz deliverable is committed at the repo root, but
+# the intermediate build/ and dist/ directories created while building it
+# are not source and should not be versioned.
+mazegen/build/
+mazegen/dist/
+build/
+dist/
+
+# --- Generated maze output (default OUTPUT_FILE from config.txt) --------
+maze.txt
+
+# --- OS / editor cruft ---------------------------------------------------
+.DS_Store
+*.swp
+*.swo
