@@ -1,7 +1,8 @@
 """Parsing and validation of the a_maze_ing configuration file.
 
 Mandatory keys per the subject: WIDTH, HEIGHT, ENTRY, EXIT, OUTPUT_FILE,
-PERFECT. One KEY=VALUE pair per line, '#' starts a comment.
+PERFECT. Optional: SEED (integer). One KEY=VALUE pair per line, '#' starts
+a comment.
 """
 
 from dataclasses import dataclass
@@ -24,6 +25,8 @@ class Config:
         exit: (x, y) coordinates of the exit cell.
         output_file: path where the maze output must be written.
         perfect: True for a single-path maze, False for a playable board.
+        seed: optional RNG seed (SEED key) for a reproducible maze; None
+            means a different maze on every run.
     """
 
     width: int
@@ -32,6 +35,7 @@ class Config:
     exit: tuple[int, int]
     output_file: str
     perfect: bool
+    seed: int | None = None
 
 
 def load_config(path: str) -> Config:
@@ -62,6 +66,8 @@ def load_config(path: str) -> Config:
     if entry == exit_:
         raise ConfigError("ENTRY and EXIT must be different cells")
 
+    seed = _parse_int(raw["SEED"], "SEED") if "SEED" in raw else None
+
     return Config(
         width=width,
         height=height,
@@ -69,6 +75,7 @@ def load_config(path: str) -> Config:
         exit=exit_,
         output_file=raw["OUTPUT_FILE"],
         perfect=_parse_bool(raw["PERFECT"], "PERFECT"),
+        seed=seed,
     )
 
 

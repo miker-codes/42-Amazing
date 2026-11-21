@@ -10,9 +10,35 @@ that is just an annotation in the image, not literal file content - trailing
 text after the coordinates would break maze_analyzer.py's parser (it does
 ``x_text, y_text = line.split(",")``, and "(x,y)" itself contains a comma).
 The real footer lines must be plain "x,y".
-
-TODO (phase 8): implement once the grid representation (phase 2) and
-pathfinding (phase 7) exist.
 """
 
-from __future__ import annotations
+from app.config import Config
+from mazegen import Direction, MazeGenerator
+
+_LETTER: dict[Direction, str] = {
+    Direction.NORTH: "N",
+    Direction.EAST: "E",
+    Direction.SOUTH: "S",
+    Direction.WEST: "W",
+}
+
+
+def write_output(config: Config, generator: MazeGenerator) -> None:
+    """Write the generated maze to config.output_file.
+
+    Args:
+        config: the run's configuration (output path, entry/exit as x,y).
+        generator: a MazeGenerator on which generate() was already called.
+
+    Raises:
+        OSError: if the file cannot be written.
+    """
+    lines = ["".join(format(cell, "x") for cell in row)
+             for row in generator.grid]
+    lines.append("")
+    lines.append(f"{config.entry[0]},{config.entry[1]}")
+    lines.append(f"{config.exit[0]},{config.exit[1]}")
+    lines.append("".join(_LETTER[d] for d in generator.shortest_path()))
+    with open(config.output_file, "w", encoding="utf-8") as output_file:
+        for line in lines:
+            output_file.write(line + "\n")

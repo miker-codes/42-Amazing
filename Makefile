@@ -10,7 +10,7 @@ install:
 	$(PYTHON) -m venv $(VENV)
 	$(BIN)/pip install --upgrade pip
 	$(BIN)/pip install -r requirements-dev.txt
-	$(BIN)/pip install -e ./mazegen
+	$(BIN)/pip install -e .
 
 ## Execute the main script (reads config.txt by default).
 run:
@@ -23,7 +23,7 @@ debug:
 ## Remove caches and build intermediates (keeps the committed .whl at root).
 clean:
 	find . -type d -name '__pycache__' -not -path './.venv/*' -exec rm -rf {} +
-	rm -rf .mypy_cache .pytest_cache mazegen/build mazegen/dist mazegen/*.egg-info
+	rm -rf .mypy_cache .pytest_cache build dist *.egg-info
 
 ## Mandatory lint flags from the subject.
 lint:
@@ -38,7 +38,7 @@ lint-strict:
 
 ## Rebuild the mazegen-*.whl / .tar.gz deliverable straight into the repo root.
 package:
-	$(BIN)/python -m build --outdir . ./mazegen
+	$(BIN)/python -m build --outdir .
 
 ## Not graded, but useful during development.
 test:

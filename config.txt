@@ -8,5 +8,6 @@ EXIT=19,14
 OUTPUT_FILE=maze.txt
 PERFECT=False
 
-# Optional extra keys can be added later (not required by the subject),
-# e.g. SEED=42 for a reproducible generation run.
+# Optional: SEED=<integer> makes the maze reproducible (same seed, same
+# maze). Without it, every run generates a different maze.
+SEED=42

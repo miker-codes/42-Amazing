@@ -1,5 +1,23 @@
-# Project-wide tooling configuration (the app itself is not an installable
-# package - only mazegen/ is; see mazegen/pyproject.toml for that).
+# Build configuration for the reusable `mazegen` package (the only thing
+# that gets packaged - the a_maze_ing app itself is not installable), plus
+# project-wide tooling configuration.
+#
+# Build the deliverable at the repo root with:  make package
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mazegen"
+version = "1.0.0"
+description = "Reusable grid maze generator and solver (hexadecimal wall encoding)."
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "mruiz-ra" }]
+
+[tool.setuptools]
+packages = ["mazegen"]
 
 [tool.mypy]
 python_version = "3.10"
@@ -10,6 +28,6 @@ disallow_untyped_defs = true
 check_untyped_defs = true
 exclude = [
     "\\.venv/",
-    "mazegen/build/",
-    "mazegen/dist/",
+    "build/",
+    "dist/",
 ]

@@ -3,6 +3,7 @@
 
 import sys
 
+from app.cli import run
 from app.config import ConfigError, load_config
 
 
@@ -26,8 +27,7 @@ def main() -> int:
         print(f"Invalid configuration: {error}", file=sys.stderr)
         return 1
 
-    print(config)
-    return 0
+    return run(config)
 
 
 if __name__ == "__main__":

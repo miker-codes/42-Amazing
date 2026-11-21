@@ -6,8 +6,6 @@ exclude =
     __pycache__,
     .mypy_cache,
     .pytest_cache,
-    mazegen/build,
-    mazegen/dist,
-    mazegen/*.egg-info,
+    *.egg-info,
     build,
     dist
