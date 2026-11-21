@@ -4,6 +4,41 @@ Notas personales de conceptos de Python que han ido saliendo mientras construía
 el proyecto. No es parte de la entrega (no lo pide el subject), es solo para repasar
 antes de la defensa. Se amplía fichero a fichero conforme avanzamos.
 
+## Dónde lo dejamos (estado actual — 2026-11-21)
+
+**Hecho, con lint limpio (flake8 + mypy normal y `--strict`) y probado a mano:**
+- `a_maze_ing.py`: lee `sys.argv`, llama a `load_config`, atrapa `OSError`/
+  `ConfigError` por separado + red de seguridad final (`except Exception`).
+- `app/config.py`: `Config` (dataclass) + `load_config()` + `ConfigError`.
+  Valida claves obligatorias, tipos, rango de ENTRY/EXIT, ENTRY≠EXIT.
+- `mazegen/mazegen.py`: `Direction` (IntFlag), `Cell = (fila, col)` interno,
+  `MazeGenerator.__init__` (valida, voltea `(x,y)`→`(fila,col)`, crea el grid
+  en blanco), `_blank_grid`, `_neighbours`, `_open`, `_carve` (backtracker
+  iterativo con pila) y `generate(seed)`. **Solo genera el modo PERFECTO**
+  (árbol de expansión, conectividad total, sin bucles) — probado:
+  reproducible por seed, coherencia de paredes, nº de pasillos = celdas-1.
+
+**Pendiente (por orden lógico):**
+1. Modo no-perfecto (Pac-Man): partir del árbol perfecto y añadir bucles
+   controlados + garantizar esquinas/centro abiertos + limitar dead-ends.
+2. Patrón "42" (celdas totalmente cerradas) + comprobación de tamaño mínimo.
+3. Regla de no-zona-3x3-abierta (en modo perfecto ya es imposible por ser un
+   árbol; hay que vigilarla al añadir bucles en el modo no-perfecto).
+4. Pathfinding (BFS, camino más corto) — dentro de `mazegen.py`, el subject
+   pide que el módulo reutilizable también exponga "al menos una solución".
+5. `app/output.py`: escribir el fichero (hex + footer), usando el formato
+   `x,y` plano (sin comentarios, pese a lo que sugiere la imagen del subject).
+6. `app/display.py`: ASCII + menú interactivo (regenerar, mostrar/ocultar
+   camino, cambiar colores).
+7. `app/cli.py`: conectar todo; actualizar `a_maze_ing.py` para usarlo.
+8. Empaquetar `mazegen` (.whl en la raíz, reconstruible en venv limpio).
+9. `README.md` completo + checklist de verificación en el campus.
+
+**Decisiones ya tomadas, no las vuelvas a plantear sin motivo** (detalle
+completo en `CLAUDE.md`, raíz del repo): backtracker recursivo (no
+Kruskal/Prim); `Cell` interno de `mazegen` es `(fila, col)`, volteo único en
+`__init__`; `Config` es un dataclass; `mazegen` nunca importa de `app`.
+
 ---
 
 ## Arquitectura general del proyecto (resumen)
@@ -429,14 +464,36 @@ para "este parámetro no tiene sentido" — no `ConfigError`, que es específico
 de *nuestro* formato de fichero y no tendría sentido en una librería que no
 sabe que existen ficheros de config.
 
-### Índices del grid: `(x, y)` pero `grid[y][x]`
+### Índices del grid — `(x, y)` por fuera, `(fila, col)` por dentro (CORREGIDO)
 
-`entry`/`exit` se guardan como `(x, y)` (columna, fila), igual que en el
-subject y en `Config`. Pero el grid se indexa `grid[y][x]`, **no**
-`grid[x][y]` — porque el fichero de salida exige "una fila por línea", así que
-`grid[y]` tiene que ser la fila `y` completa, de izquierda a derecha. Clásica
-fuente de bugs al cruzar `(x, y)` con índices de matriz — anotado para no
-olvidarlo al escribir el algoritmo.
+Primer intento: guardar `entry`/`exit` tal cual como `(x, y)` (igual que el
+subject y `Config`) pero indexar el grid `grid[y][x]`. Funcionaba, pero
+obligaba a "voltear mentalmente" en cada método que tocara el grid
+(`_neighbours`, `_open`, y más adelante el pathfinding) — un sitio perfecto
+para un bug silencioso que mypy nunca detecta (son dos `int` en una tupla, da
+igual el orden para el tipo).
+
+**Por qué `y=0` es la fila de ARRIBA, no la de abajo**: el fichero de salida
+se escribe "fila a fila" empezando por la primera línea, y esa primera línea
+es la fila superior del laberinto — igual que en un fichero de texto o una
+hoja de cálculo, donde la fila 1 está arriba y las filas crecen hacia abajo.
+No es el eje Y de un gráfico de matemáticas (donde arriba es "más"). Por eso
+ir al Norte (visualmente hacia arriba) significa **restar** a la fila/`y`, no
+sumar.
+
+**Arreglo**: dentro de `mazegen.py`, `Cell = (fila, columna)` — el mismo orden
+que los índices del grid (`grid[fila][columna]`), así que ya no hace falta
+voltear nunca al tocar el grid. El volteo se hace **una sola vez**, al
+construir el objeto: `__init__` sigue recibiendo `entry`/`exit` como `(x, y)`
+(para no romper cómo lo llama `Config`), pero los guarda ya convertidos:
+```python
+self.entry: Cell = (entry[1], entry[0])  # (x, y) -> (fila, col)
+```
+Mismo patrón que `maze_analyzer.py` (su `_parse_coordinate` hace justo este
+volteo, una vez, al leer el fichero). El subject permite explícitamente que el
+formato interno del módulo reutilizable no coincida con el del fichero de
+salida: *"the maze generator module grants access to the maze structure, but
+it is not necessarily the same format as the output file."*
 
 ### La trampa de `[fila] * n` con listas mutables
 
