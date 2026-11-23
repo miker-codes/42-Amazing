@@ -33,12 +33,19 @@ def write_output(config: Config, generator: MazeGenerator) -> None:
     Raises:
         OSError: if the file cannot be written.
     """
-    lines = ["".join(format(cell, "x") for cell in row)
-             for row in generator.grid]
+    lines: list[str] = []
+    for row in generator.grid:
+        row_text = ""
+        for cell in row:
+            row_text += format(cell, "x")
+        lines.append(row_text)
     lines.append("")
     lines.append(f"{config.entry[0]},{config.entry[1]}")
     lines.append(f"{config.exit[0]},{config.exit[1]}")
-    lines.append("".join(_LETTER[d] for d in generator.shortest_path()))
+    path_text = ""
+    for direction in generator.shortest_path():
+        path_text += _LETTER[direction]
+    lines.append(path_text)
     with open(config.output_file, "w", encoding="utf-8") as output_file:
         for line in lines:
             output_file.write(line + "\n")

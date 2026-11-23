@@ -9,11 +9,6 @@ through it, so a later project can simply::
     from mazegen import MazeGenerator
 
 and build its own generator on top of it.
-
-TODO (together):
-* Non-perfect (Pac-Man) mode: generate() currently always produces a perfect
-  maze, regardless of self.perfect.
-* The no-3x3-open-area rule (only matters once loops are added).
 """
 
 import random
@@ -132,6 +127,8 @@ class MazeGenerator:
         self._rng = random.Random(seed)
         self.grid = self._blank_grid()
         self._carve(self.entry)
+        if not self.perfect:
+            self._braid()
 
     def shortest_path(self) -> list[Direction]:
         """Find the shortest path from entry to exit (breadth-first search).
@@ -217,6 +214,79 @@ class MazeGenerator:
         nr, nc = neighbour
         self.grid[cr][cc] &= _ALL_WALLS ^ direction
         self.grid[nr][nc] &= _ALL_WALLS ^ _OPPOSITE[direction]
+
+    def _close(self, cell: Cell, neighbour: Cell, direction: Direction) -> None:
+        """Rebuild the wall between two adjacent cells (undoes _open)."""
+        cr, cc = cell
+        nr, nc = neighbour
+        self.grid[cr][cc] |= direction
+        self.grid[nr][nc] |= _OPPOSITE[direction]
+
+    def _braid(self) -> None:
+        """Pac-Man mode: give every dead-end a second way out.
+
+        A dead-end is a cell with 3 closed walls. Opening one more of its
+        walls joins it to a corridor it was not connected to, which creates
+        a loop. An opening is undone if it would leave a 3x3 open area.
+        Dead-ends whose closed walls only face the border or the "42" are
+        left as they are (nothing can be opened there).
+        """
+        for row in range(self.height):
+            for col in range(self.width):
+                cell = (row, col)
+                if cell in self.pattern or not self._is_dead_end(cell):
+                    continue
+                options = [
+                    (neighbour, direction)
+                    for neighbour, direction in self._neighbours(cell)
+                    if self.grid[row][col] & direction
+                    and neighbour not in self.pattern
+                ]
+                self._rng.shuffle(options)
+                for neighbour, direction in options:
+                    self._open(cell, neighbour, direction)
+                    if not self._has_open_3x3(cell):
+                        break
+                    self._close(cell, neighbour, direction)
+
+    def _is_dead_end(self, cell: Cell) -> bool:
+        """True if *cell* has exactly 3 closed walls (a single way out)."""
+        row, col = cell
+        closed = 0
+        for direction in Direction:
+            if self.grid[row][col] & direction:
+                closed += 1
+        return closed == 3
+
+    def _has_open_3x3(self, cell: Cell) -> bool:
+        """True if some 3x3 square containing *cell* has no inner wall.
+
+        The subject forbids open areas wider than 2 cells. Checking the
+        squares around the cell just opened is enough: any new open square
+        must contain the wall that was just removed.
+        """
+        row, col = cell
+        for top in range(row - 2, row + 1):
+            for left in range(col - 2, col + 1):
+                if self._is_open_square(top, left):
+                    return True
+        return False
+
+    def _is_open_square(self, top: int, left: int) -> bool:
+        """True if the 3x3 square whose top-left cell is (top, left) exists
+        and has every inner wall open."""
+        if top < 0 or left < 0:
+            return False
+        if top + 3 > self.height or left + 3 > self.width:
+            return False
+        for row in range(top, top + 3):
+            for col in range(left, left + 3):
+                walls = self.grid[row][col]
+                if col < left + 2 and walls & Direction.EAST:
+                    return False
+                if row < top + 2 and walls & Direction.SOUTH:
+                    return False
+        return True
 
     def _carve(self, start: Cell) -> None:
         """Randomized recursive backtracker, iterative (stack-based).
