@@ -7,7 +7,9 @@ a comment.
 
 from dataclasses import dataclass
 
-_MANDATORY_KEYS = ("WIDTH", "HEIGHT", "ENTRY", "EXIT", "OUTPUT_FILE", "PERFECT")
+_MANDATORY_KEYS = (
+    "WIDTH", "HEIGHT", "ENTRY", "EXIT", "OUTPUT_FILE", "PERFECT",
+)
 
 
 class ConfigError(Exception):
@@ -112,7 +114,9 @@ def _parse_bool(value: str, key: str) -> bool:
     raise ConfigError(f"{key} must be True or False, got {value!r}")
 
 
-def _parse_coordinates(value: str, key: str, width: int, height: int) -> tuple[int, int]:
+def _parse_coordinates(
+    value: str, key: str, width: int, height: int
+) -> tuple[int, int]:
     """Parse *value* as 'x,y', checking it falls inside the maze bounds."""
     parts = value.split(",")
     if len(parts) != 2:
@@ -120,5 +124,7 @@ def _parse_coordinates(value: str, key: str, width: int, height: int) -> tuple[i
     x = _parse_int(parts[0], key)
     y = _parse_int(parts[1], key)
     if not (0 <= x < width and 0 <= y < height):
-        raise ConfigError(f"{key} {x},{y} is outside the {width}x{height} maze")
+        raise ConfigError(
+            f"{key} {x},{y} is outside the {width}x{height} maze"
+        )
     return x, y

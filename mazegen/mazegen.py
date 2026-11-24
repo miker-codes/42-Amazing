@@ -1,21 +1,57 @@
-#!/usr/bin/env python3
 """mazegen - reusable grid maze generator and solver.
 
 This module is the standalone, pip-installable part of A-Maze-ing: it knows
 nothing about config files, output file formats, or terminal rendering. It
 only knows how to build a grid of cells with walls and how to find a path
-through it, so a later project can simply::
+through it, so a later project can reuse it as it is.
 
-    from mazegen import MazeGenerator
+Basic example::
 
-and build its own generator on top of it.
+    from mazegen import Direction, MazeGenerator
+
+    gen = MazeGenerator(width=20, height=15, entry=(0, 0), exit=(19, 14),
+                        perfect=True)
+    gen.generate(seed=42)
+    path = gen.shortest_path()      # [Direction.EAST, Direction.SOUTH, ...]
+
+Custom parameters:
+    width, height   Size of the maze, in cells.
+    entry, exit     (x, y) cells: x is the column, y the row, (0, 0) is the
+                    top-left corner. They must be different and inside the
+                    maze (and not on the "42" drawing).
+    perfect         True: exactly one path between any two cells (no loop).
+                    False: Pac-Man board (loops, no dead-end, no 3x3 open
+                    area).
+    seed            Argument of generate(): the same int always gives the
+                    same maze; None (the default) gives a new one each time.
+    Invalid parameters raise ValueError.
+
+Generated structure:
+    gen.grid[row][col]  The CLOSED walls of that cell, as a Direction flag
+                        (an int from 0 to 15): bit 0 = North, 1 = East,
+                        2 = South, 3 = West. For instance
+                        ``gen.grid[0][0] & Direction.NORTH`` is true when
+                        the cell has a north wall.
+    gen.pattern         Set of (row, col) cells drawing the "42" (fully
+                        closed). Empty if the maze is smaller than 9x7.
+    gen.entry, gen.exit The entry/exit as (row, col) - the internal order,
+                        same as gen.grid[row][col].
+
+Solution:
+    gen.shortest_path() returns the moves from entry to exit as a list of
+    Direction (breadth-first search), or [] if generate() was not called.
+
+Pac-Man mode check:
+    gen.count_loops() returns the number of independent loops (routes);
+    a Pac-Man board needs at least MIN_LOOPS (2). Mazes too small to hold
+    them (2x1, 2x2) get as many as fit.
 """
 
 import random
 from collections import deque
 from enum import IntFlag
 
-Cell = tuple[int, int]  # (row, col): internal convention, matches grid[row][col]
+Cell = tuple[int, int]  # (row, col): same order as grid[row][col]
 
 
 class Direction(IntFlag):
@@ -32,7 +68,13 @@ class Direction(IntFlag):
     WEST = 8
 
 
-_ALL_WALLS = Direction.NORTH | Direction.EAST | Direction.SOUTH | Direction.WEST
+_ALL_WALLS = (
+    Direction.NORTH | Direction.EAST | Direction.SOUTH | Direction.WEST
+)
+
+# Pac-Man mode: independent routes the board must offer (subject: "at least
+# two independent routes").
+MIN_LOOPS = 2
 
 _STEP: dict[Direction, Cell] = {
     Direction.NORTH: (-1, 0),
@@ -99,7 +141,9 @@ class MazeGenerator:
             raise ValueError("width and height must be positive")
         for name, (x, y) in (("entry", entry), ("exit", exit)):
             if not (0 <= x < width and 0 <= y < height):
-                raise ValueError(f"{name} {x},{y} is outside the {width}x{height} maze")
+                raise ValueError(
+                    f"{name} {x},{y} is outside the {width}x{height} maze"
+                )
         if entry == exit:
             raise ValueError("entry and exit must be different cells")
 
@@ -129,6 +173,7 @@ class MazeGenerator:
         self._carve(self.entry)
         if not self.perfect:
             self._braid()
+            self._add_loops(MIN_LOOPS)
 
     def shortest_path(self) -> list[Direction]:
         """Find the shortest path from entry to exit (breadth-first search).
@@ -171,7 +216,10 @@ class MazeGenerator:
 
     def _blank_grid(self) -> list[list[Direction]]:
         """Return a new grid of self.height x self.width, fully walled."""
-        return [[_ALL_WALLS for _ in range(self.width)] for _ in range(self.height)]
+        return [
+            [_ALL_WALLS for _ in range(self.width)]
+            for _ in range(self.height)
+        ]
 
     def _pattern_cells(self) -> set[Cell]:
         """Cells of the "42" drawing, centred in the grid.
@@ -197,7 +245,7 @@ class MazeGenerator:
         return cells
 
     def _neighbours(self, cell: Cell) -> list[tuple[Cell, Direction]]:
-        """In-bounds neighbours of *cell*, each with the Direction to reach it."""
+        """Neighbours of *cell* inside the grid, with the Direction to each."""
         row, col = cell
         result = []
         for direction in Direction:
@@ -215,7 +263,9 @@ class MazeGenerator:
         self.grid[cr][cc] &= _ALL_WALLS ^ direction
         self.grid[nr][nc] &= _ALL_WALLS ^ _OPPOSITE[direction]
 
-    def _close(self, cell: Cell, neighbour: Cell, direction: Direction) -> None:
+    def _close(
+        self, cell: Cell, neighbour: Cell, direction: Direction
+    ) -> None:
         """Rebuild the wall between two adjacent cells (undoes _open)."""
         cr, cc = cell
         nr, nc = neighbour
@@ -248,6 +298,60 @@ class MazeGenerator:
                     if not self._has_open_3x3(cell):
                         break
                     self._close(cell, neighbour, direction)
+
+    def count_loops(self) -> int:
+        """Independent loops of the maze (ignoring the "42" cells).
+
+        A perfect maze (a tree) with N cells has exactly N - 1 passages;
+        every passage on top of that closes one loop. Only the East and
+        South walls of each cell are looked at, so each passage is counted
+        once.
+        """
+        cells = 0
+        passages = 0
+        for row in range(self.height):
+            for col in range(self.width):
+                if (row, col) in self.pattern:
+                    continue
+                cells += 1
+                if not self.grid[row][col] & Direction.EAST:
+                    passages += 1
+                if not self.grid[row][col] & Direction.SOUTH:
+                    passages += 1
+        return passages - (cells - 1)
+
+    def _add_loops(self, wanted: int) -> None:
+        """Open random extra walls until the maze has *wanted* loops.
+
+        Only needed for very small mazes, where _braid() may find too few
+        dead-ends to create enough loops. Walls towards the "42" or that
+        would leave a 3x3 open area are not opened. If the maze is too
+        small to hold *wanted* loops, it just opens what it can.
+        """
+        loops = self.count_loops()
+        if loops >= wanted:
+            return
+        walls = []
+        for row in range(self.height):
+            for col in range(self.width):
+                cell = (row, col)
+                for neighbour, direction in self._neighbours(cell):
+                    if direction not in (Direction.EAST, Direction.SOUTH):
+                        continue
+                    if not self.grid[row][col] & direction:
+                        continue
+                    if cell in self.pattern or neighbour in self.pattern:
+                        continue
+                    walls.append((cell, neighbour, direction))
+        self._rng.shuffle(walls)
+        for cell, neighbour, direction in walls:
+            if loops >= wanted:
+                return
+            self._open(cell, neighbour, direction)
+            if self._has_open_3x3(cell):
+                self._close(cell, neighbour, direction)
+            else:
+                loops += 1
 
     def _is_dead_end(self, cell: Cell) -> bool:
         """True if *cell* has exactly 3 closed walls (a single way out)."""

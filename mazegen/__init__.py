@@ -7,6 +7,6 @@ Usage::
 See mazegen/mazegen.py for the full documentation.
 """
 
-from .mazegen import Cell, Direction, MazeGenerator
+from .mazegen import MIN_LOOPS, Cell, Direction, MazeGenerator
 
-__all__ = ["Cell", "Direction", "MazeGenerator"]
+__all__ = ["MIN_LOOPS", "Cell", "Direction", "MazeGenerator"]

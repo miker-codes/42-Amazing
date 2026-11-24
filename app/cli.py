@@ -9,7 +9,7 @@ import sys
 from app.config import Config
 from app.display import run_menu
 from app.output import write_output
-from mazegen import MazeGenerator
+from mazegen import MIN_LOOPS, MazeGenerator
 
 
 def run(config: Config) -> int:
@@ -48,6 +48,13 @@ def run(config: Config) -> int:
         message = (
             "Warning: the maze is too small for the '42' pattern "
             "(it needs at least 9x7 cells), so it was left out.\n" + message
+        )
+    loops = generator.count_loops()
+    if not config.perfect and loops < MIN_LOOPS:
+        message = (
+            f"Warning: the maze is too small for a Pac-Man board: it only "
+            f"has {loops} independent route(s), {MIN_LOOPS} are needed.\n"
+            + message
         )
     run_menu(config, generator, message)
     return 0
