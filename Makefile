@@ -2,7 +2,7 @@ PYTHON := python3
 VENV   := .venv
 BIN    := $(VENV)/bin
 
-.PHONY: install run debug clean lint lint-strict package test
+.PHONY: install run debug clean lint lint-strict package
 
 ## Create the venv and install dev tools + the reusable mazegen package
 ## in editable mode (PEP 668 blocks `pip install` outside a venv on Arch).
@@ -23,7 +23,7 @@ debug:
 ## Remove caches and build intermediates (keeps the committed .whl at root).
 clean:
 	find . -type d -name '__pycache__' -not -path './.venv/*' -exec rm -rf {} +
-	rm -rf .mypy_cache .pytest_cache build dist *.egg-info
+	rm -rf .mypy_cache build dist *.egg-info
 
 ## Mandatory lint flags from the subject.
 lint:
@@ -36,10 +36,6 @@ lint-strict:
 	$(BIN)/flake8 .
 	$(BIN)/mypy . --strict
 
-## Rebuild the mazegen-*.whl / .tar.gz deliverable straight into the repo root.
+## Rebuild the mazegen-*.whl deliverable straight into the repo root.
 package:
-	$(BIN)/python -m build --outdir .
-
-## Not graded, but useful during development.
-test:
-	$(BIN)/pytest -q
+	$(BIN)/python -m build --wheel --outdir .
