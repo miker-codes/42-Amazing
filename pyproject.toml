@@ -14,7 +14,7 @@ version = "1.0.0"
 description = "Reusable grid maze generator and solver (hexadecimal wall encoding)."
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "mruiz-ra" }]
+authors = [{ name = "mruiz-ra" }, { name = "blromero" }]
 
 [tool.setuptools]
 packages = ["mazegen"]

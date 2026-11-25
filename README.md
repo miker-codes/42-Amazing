@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by mruiz-ra.*
+*This project has been created as part of the 42 curriculum by mruiz-ra, blromero.*
 
 # A-Maze-ing
 
@@ -197,27 +197,32 @@ Invalid parameters raise `ValueError`.
 
 ### How AI was used
 
-An AI assistant (Claude) was used as a tutor throughout the project:
+We used an AI assistant (Claude) as a tutor throughout the project:
 explaining concepts (bit flags, stacks and queues, BFS, packaging, mypy
-errors), proposing design options with their pros and cons so that I could
-choose, reviewing my code, and testing it (running `maze_analyzer.py` on
+errors), proposing design options with their pros and cons so that we could
+choose, reviewing our code, and testing it (running `maze_analyzer.py` on
 hundreds of generated mazes, edge-case configuration files, lint).
 
-Some parts of the code were written by the AI at my explicit request:
+Some parts of the code were written by the AI at our explicit request:
 the "42" pattern, the BFS solver, the output writer, the CLI wiring, the
 terminal display and menu, the Pac-Man braiding and the 2-loop guarantee,
 and the packaging setup. Every one of them was then reviewed and explained
-line by line until I could defend it; where a construct was hard to read
+line by line until we could defend it; where a construct was hard to read
 (list comprehensions in the output writer, for example) it was rewritten
 in a simpler form. The configuration parser, the entry point and the core
-of the maze generator were written by me with the AI's guidance. The final
-design choices (algorithm, data structures, error handling) are mine.
+of the maze generator were written by us with the AI's guidance. The final
+design choices (algorithm, data structures, error handling) are ours.
 
 ## Project management
 
-- **Team**: solo project (mruiz-ra): design, code, tests and documentation.
-- **Planning and how it evolved**: the initial plan was config parsing →
-  perfect maze → "42" → Pac-Man mode → output file → display → packaging.
+- **Team and roles**: mruiz-ra and blromero. We did not split the project
+  into separate parts: we worked on every part together (design, maze
+  generator, configuration and output, display and menu, packaging,
+  testing and documentation), so that both of us can explain and modify
+  any part of the code.
+- **Planning and how it evolved**: the initial plan was config parsing ->
+  perfect maze -> "42" -> Pac-Man mode -> output file -> display ->
+  packaging.
   Along the way the order changed: the shortest path, the output file and
   the display were done before the Pac-Man mode, so that every later change
   could be seen and checked with `maze_analyzer.py` straight away. Testing
